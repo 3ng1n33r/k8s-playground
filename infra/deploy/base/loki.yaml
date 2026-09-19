@@ -21,13 +21,13 @@ spec:
       sourceRef:
         kind: HelmRepository
         name: grafana
-      version: 6.55.0
+      version: 7.3.0
   dependsOn:
     - name: local-path-provisioner
   timeout: 10m0s
   interval: 30m
   releaseName: loki
-  targetNamespace: logs
+  targetNamespace: logging
   values:
     gateway:
       enabled: true
