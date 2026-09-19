@@ -11,8 +11,8 @@ resources:
   - ./prometheus/hardware-temperature-rule.yaml
   - ./prometheus/certificate-expiration-rule.yaml
   - ./prometheus/kubecert-expiration-rule.yaml
-  - ./prometheus/monitoring-gateway-cert.yaml  
-  - ./prometheus/monitoring-gateway.yaml
+#  - ./prometheus/monitoring-gateway-cert.yaml  
+#  - ./prometheus/monitoring-gateway.yaml
   - ./prometheus/grafana-dashboard-haproxy.yaml
   - ./prometheus/grafana-dashboard-node-exporter.yaml
   - ./prometheus/blackbox-dns-alerts.yaml

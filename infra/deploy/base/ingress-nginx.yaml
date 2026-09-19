@@ -33,12 +33,12 @@ spec:
       minAvailable: 1
       nodeSelector:
         kubernetes.io/os: linux
-        node-role.kubernetes.io/ingress: "true"
+        node-role.kubernetes.io/ingress: ""
       admissionWebhooks:
         patch:
           nodeSelector:
             kubernetes.io/os: linux
-            node-role.kubernetes.io/ingress: "true"
+            node-role.kubernetes.io/ingress: ""
 #      metrics:
 #        enabled: true
 #        serviceMonitor:
