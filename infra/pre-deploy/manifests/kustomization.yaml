@@ -4,7 +4,6 @@ kind: Kustomization
 resources:
   - namespace.yaml
   - rbac.yaml
-#  - ./cilium/l2-announcement-policy.yaml
   - ./cilium/bgp-cluster-config.yaml
   - ./cilium/bgp-peer-config.yaml
   - ./cilium/bgp-advertisements.yaml
