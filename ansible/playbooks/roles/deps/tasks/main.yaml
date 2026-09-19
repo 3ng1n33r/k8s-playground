@@ -1,0 +1,156 @@
+---
+- name: Only run "update_cache=yes" if the last one is more than 3600 seconds ago.
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+  tags:
+    - deps
+
+# Disable SWAP
+
+- name: Disable SWAP.
+  ansible.builtin.command: swapoff -a
+  changed_when: false
+  tags:
+    - deps
+
+- name: Disable SWAP in fstab.
+  ansible.builtin.replace:
+    path: /etc/fstab
+    regexp: '^([^#].*?\sswap\s+sw\s+.*)$'
+    replace: '# \1'
+  tags:
+    - deps
+
+# Install modules and add kernel settings
+
+- name: Load kernel modules.
+  community.general.modprobe:
+    name: "{{ item }}"
+    state: present
+    persistent: present
+  loop:
+    - br_netfilter
+    - overlay
+  tags:
+    - deps
+
+- name: Create file /etc/sysctl.d/kubernetes.conf.
+  ansible.posix.sysctl:
+    name: "{{ item }}"
+    value: '1'
+    sysctl_file: /etc/sysctl.d/kubernetes.conf
+    reload: true
+  loop:
+    - net.bridge.bridge-nf-call-ip6tables
+    - net.bridge.bridge-nf-call-iptables
+    - net.ipv4.ip_forward
+  tags:
+    - deps
+
+- name: Unhold packages.
+  ansible.builtin.dpkg_selections:
+    name: "{{ item }}"
+    selection: install
+  loop:
+    - kubeadm
+    - kubelet
+    - kubectl
+    - containerd.io
+    - cri-tools
+  ignore_errors: true
+  tags:
+    - deps
+
+# Install Containerd
+
+- name: Install Containerd.
+  ansible.builtin.apt:
+    name: containerd.io={{ containerd_pkg_version }}
+    state: present
+  notify: Generate Containerd config.
+  tags:
+    - deps
+
+- name: Force all notified handlers to run at this point.
+  ansible.builtin.meta: flush_handlers
+  tags:
+    - deps
+
+- name: Configuring Systemd cgroup driver for Containerd.
+  ansible.builtin.lineinfile:
+    path: "{{ containerd_config_dir }}/config.toml"
+    regexp: "            SystemdCgroup = false"
+    line: "            SystemdCgroup = true"
+    backup: true
+  notify: Restart containerd.
+  tags:
+    - deps
+
+- name: Configuring Pause image version.
+  ansible.builtin.lineinfile:
+    path: "{{ containerd_config_dir }}/config.toml"
+    regexp: "^      sandbox"
+    line: "      sandbox = '{{ sandbox_image }}'"
+    backup: true
+  notify: Restart containerd.
+  tags:
+    - deps
+
+- name: Write containerd systemd unit file.
+  ansible.builtin.include_tasks: containerd-unit.yaml
+  tags:
+    - deps
+
+- name: Enable and start the Containerd service.
+  ansible.builtin.systemd_service:
+    name: containerd
+    state: started
+    enabled: true
+  tags:
+    - deps
+
+# Install kubeadm, kubelet, Kubectl
+
+- name: Install Kubeadm, Kubelet packages.
+  ansible.builtin.apt:
+    name:
+      - kubelet={{ kubernetes_pkg_version }}
+      - kubeadm={{ kubernetes_pkg_version }}
+      - kubectl={{ kubernetes_pkg_version }}
+      - cri-tools={{ cri_tools_pkg_version }}
+    state: present
+  tags:
+    - deps
+
+- name: Write kubelet systemd unit file.
+  ansible.builtin.include_tasks: kubelet-unit.yaml
+  tags:
+    - deps
+
+- name: Set the crictl endpoint in the configuration file.
+  ansible.builtin.copy:
+    dest: /etc/crictl.yaml
+    content: |
+      runtime-endpoint: unix:///var/run/containerd/containerd.sock
+      image-endpoint: unix:///var/run/containerd/containerd.sock
+      timeout: 10
+      debug: true
+    owner: root
+    group: root
+    mode: '0644'
+  tags:
+    - deps
+
+- name: Hold packages.
+  ansible.builtin.dpkg_selections:
+    name: "{{ item }}"
+    selection: hold
+  loop:
+    - kubelet
+    - kubeadm
+    - kubectl
+    - containerd.io
+    - cri-tools
+  tags:
+    - deps

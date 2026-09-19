@@ -1,7 +1,7 @@
-etcd_version: '3.5.31'
-etcd_owner: etcd
-#etcd_cert_group: root
-etcd_data_dir: /var/lib/etcd
-etcd_config_dir: /etc/ssl/etcd
-etcd_cert_dir: "{{ etcd_config_dir }}/ssl"
-etcd_initial_cluster_state: existing
+etcd_version: "3.5.33"
+etcd_owner: "etcd"
+etcd_data_dir: "/var/lib/etcd"
+etcd_config_dir: "/etc/etcd"
+etcd_cert_dir: "{{ etcd_config_dir }}/pki"
+etcd_initial_cluster_state: new # new or existing
+etcd_quota_backend_bytes: 2147483648 # 2147483648 — 2 GiB (default) , 8589934592 — 8 GiB

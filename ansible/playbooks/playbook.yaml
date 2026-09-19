@@ -1,0 +1,27 @@
+---
+- name: Configure Kubernetes cluster.
+  hosts: "{{ ansible_limit }}"
+  gather_facts: true
+  become: true
+  roles:
+    - apt_proxy
+    - repos
+    - os
+    - deps
+    - haproxy
+    - sysctl
+    - etcd
+    - kubeadm
+    - master
+    - cni
+    - worker
+    - labels
+    - cron
+
+- name: Configure kubelet sequentially.
+  hosts: "{{ ansible_limit }}"
+  gather_facts: true
+  become: true
+  serial: 1
+  roles:
+    - kubelet

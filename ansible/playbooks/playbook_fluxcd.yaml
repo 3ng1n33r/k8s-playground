@@ -1,0 +1,84 @@
+---
+# ansible-playbook -i inventory/hosts.yml playbooks/playbook_fluxcd.yaml -vD -e "gitlab_pat=glpat-XXXXXXXXXXXXXXXXXXXX"
+- name: Playbook to install Flux.
+  hosts: master[0]
+  become: true
+  tasks:
+    - name: Check Flux binary exist.
+      ansible.builtin.stat:
+        path: "{{ bin_dir }}/flux"
+      register: flux_check
+
+    - name: Check current Flux version.
+      ansible.builtin.command: "{{ bin_dir }}/flux --version"
+      register: flux_version_output
+      changed_when: false
+      when: flux_check.stat.exists
+
+    - name: Extract installed Flux version.
+      ansible.builtin.set_fact:
+        installed_flux_version: "{{ flux_version_output.stdout | regex_search('([0-9]+\\.[0-9]+\\.[0-9]+)', '\\1') }}"
+      when: flux_check.stat.exists and flux_version_output.rc == 0
+
+    - name: Download Flux cli.
+      ansible.builtin.get_url:
+        url: "https://github.com/fluxcd/flux2/releases/download/v{{ flux_version }}/flux_{{ flux_version }}_linux_{{ 'amd64' if ansible_architecture == 'x86_64' else 'arm64' }}.tar.gz"
+        dest: "/tmp/flux-linux.tar.gz"
+        mode: '0644'
+      when:
+        - not flux_check.stat.exists or installed_flux_version != flux_version
+
+    - name: Extract Flux cli.
+      ansible.builtin.unarchive:
+        src: "/tmp/flux-linux.tar.gz"
+        dest: "{{ bin_dir }}"
+        remote_src: true
+        mode: '0755'
+        owner: root
+        group: root
+      when:
+        - not flux_check.stat.exists or installed_flux_version != flux_version
+
+    - name: Initialize Flux.
+      ansible.builtin.shell: flux bootstrap gitlab --deploy-token-auth --owner={{ gitlab_user }} --repository={{ flux_gitlab_repo }} --branch={{ flux_gitlab_branch }} --path={{ flux_gitlab_path }} --personal --components-extra=image-reflector-controller,image-automation-controller > flux_initialized.log 2>&1
+      environment:
+        GITLAB_TOKEN: "{{ gitlab_pat }}"
+        GITLAB_USER: "{{ gitlab_user }}"
+        KUBECONFIG: /etc/kubernetes/admin.conf
+      args:
+        chdir: /home/{{ ansible_user }}
+        creates: flux_initialized.log
+
+    - name: Check Kubeseal binary exist.
+      ansible.builtin.stat:
+        path: "{{ bin_dir }}/kubeseal"
+      register: kubeseal_check
+
+    - name: Check current Kubeseal version.
+      ansible.builtin.command: "{{ bin_dir }}/kubeseal --version"
+      register: kubeseal_version_output
+      changed_when: false
+      when: kubeseal_check.stat.exists
+
+    - name: Extract installed Kubeseal version.
+      ansible.builtin.set_fact:
+        installed_kubeseal_version: "{{ kubeseal_version_output.stdout | regex_search('([0-9]+\\.[0-9]+\\.[0-9]+)', '\\1') }}"
+      when: kubeseal_check.stat.exists and kubeseal_version_output.rc == 0
+
+    - name: Download Kubeseal.
+      ansible.builtin.get_url:
+        url: "https://github.com/bitnami-labs/sealed-secrets/releases/download/v{{ kubeseal_version }}/kubeseal-{{ kubeseal_version }}-linux-{{ 'amd64' if ansible_architecture == 'x86_64' else 'arm64' }}.tar.gz"
+        dest: "/tmp/kubeseal-linux.tar.gz"
+        mode: '0644'
+      when: not kubeseal_check.stat.exists or installed_kubeseal_version != kubeseal_version
+
+    - name: Extract Kubeseal cli.
+      ansible.builtin.unarchive:
+        src: "/tmp/kubeseal-linux.tar.gz"
+        dest: "{{ bin_dir }}"
+        remote_src: true
+        mode: '0755'
+        owner: root
+        group: root
+      when:
+        - not kubeseal_check.stat.exists or installed_kubeseal_version != kubeseal_version

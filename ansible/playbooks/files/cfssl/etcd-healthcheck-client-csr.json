@@ -1,7 +1,0 @@
-{
-  "CN": "etcd-healthcheck-client",
-  "key": {
-      "algo": "ecdsa",
-      "size": 256
-  }
-}

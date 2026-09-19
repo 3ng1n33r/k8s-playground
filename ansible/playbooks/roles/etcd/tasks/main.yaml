@@ -1,0 +1,210 @@
+---
+# Prepare nodes
+
+- name: Create kubernetes directories.
+  when: "'master' in group_names"
+  block:
+    - name: Create kubernetes directory.
+      ansible.builtin.file:
+        path: "{{ kube_config_dir }}"
+        state: directory
+        mode: '0751'
+        owner: root
+        group: root
+
+    - name: Make least directory.
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0700'
+        owner: root
+        group: root
+      loop:
+        - "{{ kube_cert_dir }}"
+        - "{{ kube_cert_dir }}/etcd"
+        - "{{ kube_manifest_dir }}"
+  tags:
+    - etcd
+
+- name: Create user and etcd directories.
+  when: "'etcd' in group_names"
+  block:
+    - name: Ensure group etcd exists.
+      ansible.builtin.group:
+        name: "{{ etcd_owner }}"
+        system: true
+        state: present
+
+    - name: Create etcd user.
+      ansible.builtin.user:
+        name: "{{ etcd_owner }}"
+        group: "{{ etcd_owner }}"
+        shell: /usr/sbin/nologin
+        create_home: false
+        system: true
+        state: present
+
+    - name: Create etcd directories.
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        owner: "{{ etcd_owner }}"
+        group: "{{ etcd_owner }}"
+        mode: '0700'
+      loop:
+        - "{{ etcd_config_dir }}"
+        - "{{ etcd_cert_dir }}"
+        - "{{ etcd_data_dir }}"
+  tags:
+    - etcd
+
+# Copy certs from vault
+
+- name: Copy certs to masters from Vault.
+  when: "'master' in group_names"
+  block:
+    - name: Define master certificates.
+      ansible.builtin.set_fact:
+        vault_certs:
+          - name: etcd-ca.crt
+            dest: "{{ kube_cert_dir }}/etcd/ca.crt"
+            mode: "0644"
+            owner: root
+
+          - name: etcd-ca.key
+            dest: "{{ kube_cert_dir }}/etcd/ca.key"
+            mode: "0600"
+            owner: root
+
+          - name: apiserver-etcd-client.crt
+            dest: "{{ kube_cert_dir }}/apiserver-etcd-client.crt"
+            mode: "0644"
+            owner: root
+
+          - name: apiserver-etcd-client.key
+            dest: "{{ kube_cert_dir }}/apiserver-etcd-client.key"
+            mode: "0600"
+            owner: root
+
+    - name: Read certificates from Vault.
+      community.hashi_vault.vault_kv2_get:
+        url: "{{ vault_addr }}"
+        engine_mount_point: "{{ vault_mount | default('secret') }}"
+        path: "{{ cluster_name }}/{{ item.name }}"
+        token: "{{ vault_token }}"
+      delegate_to: localhost
+      become: false
+      loop: "{{ vault_certs }}"
+      register: vault_certs_data
+      no_log: true
+
+    - name: Copy certificates.
+      ansible.builtin.copy:
+        content: "{{ item.1.secret.value }}"
+        dest: "{{ item.0.dest }}"
+        mode: "{{ item.0.mode }}"
+        owner: "{{ item.0.owner }}"
+      loop: "{{ vault_certs | zip(vault_certs_data.results) | list }}"
+      no_log: true
+  tags:
+    - etcd
+
+- name: Copy certs to etcd nodes from Vault.
+  when: "'etcd' in group_names"
+  block:
+    - name: Define etcd certificates.
+      ansible.builtin.set_fact:
+        vault_certs:
+          - name: etcd-ca.crt
+            dest: "{{ etcd_cert_dir }}/ca.crt"
+            mode: "0644"
+
+          - name: etcd-ca.key
+            dest: "{{ etcd_cert_dir }}/ca.key"
+            mode: "0600"
+
+          - name: "{{ ansible_hostname }}-etcd-server.crt"
+            dest: "{{ etcd_cert_dir }}/server.crt"
+            mode: "0644"
+
+          - name: "{{ ansible_hostname }}-etcd-server.key"
+            dest: "{{ etcd_cert_dir }}/server.key"
+            mode: "0600"
+
+          - name: "{{ ansible_hostname }}-etcd-peer.crt"
+            dest: "{{ etcd_cert_dir }}/peer.crt"
+            mode: "0644"
+
+          - name: "{{ ansible_hostname }}-etcd-peer.key"
+            dest: "{{ etcd_cert_dir }}/peer.key"
+            mode: "0600"
+
+    - name: Read certificates from Vault.
+      community.hashi_vault.vault_kv2_get:
+        url: "{{ vault_addr }}"
+        engine_mount_point: "{{ vault_mount | default('secret') }}"
+        path: "{{ cluster_name }}/{{ item.name }}"
+        token: "{{ vault_token }}"
+      delegate_to: localhost
+      become: false
+      loop: "{{ vault_certs }}"
+      register: vault_certs_data
+      no_log: true
+
+    - name: Copy certificates.
+      ansible.builtin.copy:
+        content: "{{ item.1.secret.value }}"
+        dest: "{{ item.0.dest }}"
+        mode: "{{ item.0.mode }}"
+        owner: "{{ etcd_owner }}"
+      loop: "{{ vault_certs | zip(vault_certs_data.results) | list }}"
+      no_log: true
+  tags:
+    - etcd
+
+# Install etcd
+
+- name: Install etcd.
+  when: "'etcd' in group_names"
+  throttle: 1
+  block:
+    - name: Check etcd binary exist.
+      ansible.builtin.stat:
+        path: "{{ bin_dir }}/etcd"
+      register: etcd_check
+
+    - name: Download etcd.
+      ansible.builtin.unarchive:
+        src: https://github.com/etcd-io/etcd/releases/download/v{{ etcd_version }}/etcd-v{{ etcd_version }}-linux-{{ 'amd64' if ansible_architecture == 'x86_64' else 'arm64' }}.tar.gz
+        dest: /tmp
+        remote_src: true
+        mode: '0755'
+      when: not etcd_check.stat.exists
+
+    - name: Copy etcd binaries to /usr/local/bin.
+      ansible.builtin.copy:
+        src: "{{ item }}"
+        dest: "{{ bin_dir }}"
+        remote_src: true
+        mode: '0755'
+      loop:
+        - "/tmp/etcd-v{{ etcd_version }}-linux-{{ 'amd64' if ansible_architecture == 'x86_64' else 'arm64' }}/etcd"
+        - "/tmp/etcd-v{{ etcd_version }}-linux-{{ 'amd64' if ansible_architecture == 'x86_64' else 'arm64' }}/etcdctl"
+        - "/tmp/etcd-v{{ etcd_version }}-linux-{{ 'amd64' if ansible_architecture == 'x86_64' else 'arm64' }}/etcdutl"
+      when: not etcd_check.stat.exists
+
+    - name: Copy the etcd systemd unit file.
+      ansible.builtin.template:
+        src: etcd.service.j2
+        dest: /etc/systemd/system/etcd.service
+        mode: '0644'
+      notify: Restart etcd.
+
+    - name: Ensure etcd is running and enabled at boot.
+      ansible.builtin.systemd_service:
+        name: etcd
+        state: started
+        daemon_reload: true
+        enabled: true
+  tags:
+    - etcd
