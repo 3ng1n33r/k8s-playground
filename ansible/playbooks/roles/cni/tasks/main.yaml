@@ -1,0 +1,100 @@
+---
+# Install Cilium CLI
+
+- name: Check Cilium cli exist.
+  ansible.builtin.stat:
+    path: "{{ bin_dir }}/cilium"
+  register: cilium_check
+  tags:
+    - cni
+
+- name: Check Cilium cli version.
+  ansible.builtin.command: "{{ bin_dir }}/cilium version"
+  register: cilium_version_cmd
+  changed_when: false
+  when: cilium_check.stat.exists
+  tags:
+    - cni
+
+- name: Extract Cilium CLI version.
+  ansible.builtin.set_fact:
+    cilium_cli_current_version: >-
+      {{ cilium_version_cmd.stdout
+        | regex_search('cilium-cli:\s*v([0-9]+\.[0-9]+\.[0-9]+)', '\1')
+        | first }}
+  when: cilium_check.stat.exists
+  tags:
+    - cni
+
+- name: Download Cilium CLI archive.
+  ansible.builtin.get_url:
+    url: "https://github.com/cilium/cilium-cli/releases/download/v{{ cilium_cli_version }}/cilium-linux-{{ 'amd64' if ansible_architecture == 'x86_64' else 'arm64' }}.tar.gz"
+    dest: "/tmp/cilium-linux.tar.gz"
+    mode: '0644'
+    timeout: 120
+    force: true
+  register: cilium_download
+  retries: 5
+  delay: 15
+  until: cilium_download is succeeded
+  throttle: 1
+  when:
+    - not cilium_check.stat.exists or cilium_cli_current_version != cilium_cli_version
+  tags:
+    - cni
+
+- name: Extract Cilium CLI.
+  ansible.builtin.unarchive:
+    src: /tmp/cilium-linux.tar.gz
+    dest: "{{ bin_dir }}"
+    remote_src: true
+    mode: '0755'
+    owner: root
+    group: root
+  when:
+    - not cilium_check.stat.exists or cilium_cli_current_version != cilium_cli_version
+  tags:
+    - cni
+
+# Install CNI Cilium
+
+- name: Deploy CNI Cilium chart.
+  when: inventory_hostname == groups['master'][0]
+  block:
+    - name: Install Helm.
+      ansible.builtin.apt:
+        name: helm={{ helm_pkg_version }}
+        state: present
+        update_cache: true
+
+    - name: Check Cilium release.
+      kubernetes.core.helm_info:
+        name: cilium
+        release_namespace: kube-system
+        kubeconfig: "/etc/kubernetes/admin.conf"
+      register: cilium_release
+      failed_when: false
+      changed_when: false
+
+    - name: Copy Cilium values file.
+      ansible.builtin.template:
+        src: cilium-values.yaml.j2
+        dest: /tmp/cilium-values.yaml
+        mode: "0644"
+      when: cilium_release.release is not defined
+
+    - name: Install Cilium with values.
+      kubernetes.core.helm:
+        name: cilium
+        chart_ref: "oci://quay.io/cilium/charts/cilium"
+        chart_version: "{{ cilium_version }}"
+        release_namespace: kube-system
+        kubeconfig: "/etc/kubernetes/admin.conf"
+        values_files:
+          - "/tmp/cilium-values.yaml"
+        wait: true
+        timeout: 10m
+        state: present
+      when: cilium_release.release is not defined
+  tags:
+    - cni

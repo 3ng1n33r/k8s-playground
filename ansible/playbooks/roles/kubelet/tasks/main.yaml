@@ -1,0 +1,26 @@
+---
+- name: Set system reserved memory based on host RAM.
+  ansible.builtin.set_fact:
+    system_reserved_resources: >-
+      {{
+        system_reserved_resources
+        | combine({
+            'memory': (
+              '256Mi' if ansible_facts.memtotal_mb < 7000
+              else '512Mi'
+            )
+          })
+      }}
+  tags:
+    - kubelet
+
+- name: Configure systemReserved.
+  ansible.builtin.template:
+    src: "kubelet-system-reserved.yaml.j2"
+    dest: "{{ kube_config_dir }}/kubelet.conf.d/10-system-reserved.conf"
+    owner: root
+    group: root
+    mode: "0600"
+  notify: Restart kubelet.
+  tags:
+    - kubelet

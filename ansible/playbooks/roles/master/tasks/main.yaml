@@ -1,0 +1,106 @@
+---
+# Copy certs from vault
+
+- name: Copy certs to masters from Vault.
+  when: "'master' in group_names"
+  block:
+    - name: Define master certificates.
+      ansible.builtin.set_fact:
+        vault_certs:
+          - name: ca.crt
+            dest: "{{ kube_cert_dir }}/ca.crt"
+            mode: "0644"
+            owner: root
+
+          - name: ca.key
+            dest: "{{ kube_cert_dir }}/ca.key"
+            mode: "0600"
+            owner: root
+
+          - name: front-proxy-ca.crt
+            dest: "{{ kube_cert_dir }}/front-proxy-ca.crt"
+            mode: "0644"
+            owner: root
+
+          - name: front-proxy-ca.key
+            dest: "{{ kube_cert_dir }}/front-proxy-ca.key"
+            mode: "0600"
+            owner: root
+
+          - name: sa.pub
+            dest: "{{ kube_cert_dir }}/sa.pub"
+            mode: "0644"
+            owner: root
+
+          - name: sa.key
+            dest: "{{ kube_cert_dir }}/sa.key"
+            mode: "0600"
+            owner: root
+
+    - name: Read certificates from Vault.
+      community.hashi_vault.vault_kv2_get:
+        url: "{{ vault_addr }}"
+        engine_mount_point: "{{ vault_mount | default('secret') }}"
+        path: "{{ cluster_name }}/{{ item.name }}"
+        token: "{{ vault_token }}"
+      delegate_to: localhost
+      become: false
+      loop: "{{ vault_certs }}"
+      register: vault_certs_data
+      no_log: true
+
+    - name: Copy certificates.
+      ansible.builtin.copy:
+        content: "{{ item.1.secret.value }}"
+        dest: "{{ item.0.dest }}"
+        mode: "{{ item.0.mode }}"
+        owner: "{{ item.0.owner }}"
+      loop: "{{ vault_certs | zip(vault_certs_data.results) | list }}"
+      no_log: true
+  tags:
+    - master
+
+# Initialize cluster
+
+- name: Initialize the HA-cluster.
+  ansible.builtin.shell: kubeadm init --config kubeadm-config.yaml --skip-phases={{ kubeadm_init_phases_skip | join(',') }} > /home/{{ ansible_user }}/cluster_initialized.log 2>&1
+  args:
+    chdir: "{{ kube_config_dir }}"
+    creates: /home/{{ ansible_user }}/cluster_initialized.log
+  when:
+    - inventory_hostname == groups['master'][0]
+  tags:
+    - master
+
+# Join other master nodes
+
+- name: Configure join commands on first master node.
+  when: inventory_hostname == groups['master'][0]
+  block:
+    - name: Retrieve join command.
+      ansible.builtin.command: kubeadm token create --print-join-command
+      register: join_command_raw
+      changed_when: false
+
+    - name: Set join command fact.
+      ansible.builtin.set_fact:
+        join_command: "{{ join_command_raw.stdout_lines[0] }}"
+  tags:
+    - master
+
+- name: Join other master nodes.
+  when: inventory_hostname in groups['master'][1:]
+  throttle: 1
+  block:
+    - name: Check the availability api server port.
+      ansible.builtin.wait_for:
+        host: "{{ loadbalancer_apiserver.address }}"
+        port: "{{ loadbalancer_apiserver.port }}"
+
+    - name: Join master node to cluster.
+      ansible.builtin.shell: "{{ hostvars[groups['master'][0]].join_command }} --control-plane --skip-phases=control-plane-prepare/download-certs > node_joined.log 2>&1"
+      args:
+        chdir: /home/{{ ansible_user }}
+        creates: node_joined.log
+  tags:
+    - master

@@ -1,0 +1,64 @@
+---
+- name: Label ingress nodes.
+  ansible.builtin.command:
+    argv:
+      - kubectl
+      - --kubeconfig
+      - /etc/kubernetes/admin.conf
+      - label
+      - node
+      - "{{ ansible_hostname }}"
+      - node-role.kubernetes.io/ingress=
+      - --overwrite
+  delegate_to: "{{ groups['master'][0] }}"
+  when: "'ingress' in group_names"
+  tags:
+    - labels
+
+- name: Label worker nodes.
+  ansible.builtin.command:
+    argv:
+      - kubectl
+      - --kubeconfig
+      - /etc/kubernetes/admin.conf
+      - label
+      - node
+      - "{{ ansible_hostname }}"
+      - node-role.kubernetes.io/worker=
+      - --overwrite
+  delegate_to: "{{ groups['master'][0] }}"
+  when: "'worker' in group_names"
+  tags:
+    - labels
+
+- name: Label etcd nodes.
+  ansible.builtin.command:
+    argv:
+      - kubectl
+      - --kubeconfig
+      - /etc/kubernetes/admin.conf
+      - label
+      - node
+      - "{{ ansible_hostname }}"
+      - node-role.kubernetes.io/etcd=
+      - --overwrite
+  delegate_to: "{{ groups['master'][0] }}"
+  when: "'etcd' in group_names"
+  tags:
+    - labels
+
+#- name: Label control-plane nodes.
+#  ansible.builtin.command:
+#    argv:
+#      - kubectl
+#      - --kubeconfig
+#      - /etc/kubernetes/admin.conf
+#      - label
+#      - node
+#      - "{{ ansible_hostname }}"
+#      - node-role.kubernetes.io/control-plane=
+#      - --overwrite
+#  delegate_to: "{{ groups['master'][0] }}"
+#  when: "'master' in group_names"
+#  tags:
+#    - labels

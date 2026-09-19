@@ -1,9 +1,0 @@
-{
-    "CN": "kube-apiserver-etcd-client",
-    "O": "system:masters",
-    "hosts": [""],
-    "key": {
-        "algo": "ecdsa",
-        "size": 256
-    }
-}

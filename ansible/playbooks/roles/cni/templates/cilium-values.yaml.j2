@@ -1,0 +1,28 @@
+k8sServiceHost: "{{ loadbalancer_apiserver.address }}"
+k8sServicePort: "{{ loadbalancer_apiserver.port }}"
+kubeProxyReplacement: true
+autoDirectNodeRoutes: true
+bgpControlPlane:
+  enabled: true
+bpf:
+  distributedLRU:
+    enabled: true
+  mapDynamicSizeRatio: 0.08
+  masquerade: true
+  datapathMode: netkit
+bpfClockProbe: true
+gatewayAPI:
+  enabled: false
+hubble:
+  enabled: false
+ipam:
+  mode: "cluster-pool"
+  operator:
+    clusterPoolIPv4PodCIDRList: ["{{ kube_pods_subnet }}"]
+    clusterPoolIPv4MaskSize: 24
+ipv4:
+  enabled: true
+ipv4NativeRoutingCIDR: "{{ kube_pods_subnet }}"
+envoy:
+  enabled: false
+routingMode: "native"

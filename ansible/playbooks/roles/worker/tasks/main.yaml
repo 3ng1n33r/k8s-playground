@@ -1,0 +1,33 @@
+---
+# Join worker nodes
+
+- name: Configure join commands on first master node.
+  when: inventory_hostname == groups['master'][0]
+  block:
+    - name: Retrieve join command.
+      ansible.builtin.command: kubeadm token create --print-join-command
+      register: join_command_raw
+      changed_when: false
+
+    - name: Set join command fact.
+      ansible.builtin.set_fact:
+        join_command: "{{ join_command_raw.stdout_lines[0] }}"
+  tags:
+    - worker
+
+- name: Join worker nodes.
+  when: "'worker' in group_names"
+  throttle: 1
+  block:
+    - name: Check the availability api server port.
+      ansible.builtin.wait_for:
+        host: "{{ loadbalancer_apiserver.address }}"
+        port: "{{ loadbalancer_apiserver.port }}"
+
+    - name: Join worker node to cluster.
+      ansible.builtin.shell: "{{ hostvars[groups['master'][0]].join_command }} > node_joined.log 2>&1"
+      args:
+        chdir: /home/{{ ansible_user }}
+        creates: node_joined.log
+  tags:
+    - worker

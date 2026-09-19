@@ -2,3 +2,4 @@
 collections:
   - kubernetes.core
   - ansible.utils
+  - community.hashi_vault

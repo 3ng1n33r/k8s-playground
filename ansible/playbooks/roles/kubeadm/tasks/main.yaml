@@ -1,0 +1,33 @@
+---
+- name: Aggregate all SANs.
+  set_fact:
+    apiserver_sans: "{{ _apiserver_sans | flatten | select | unique }}"
+  vars:
+    _apiserver_sans:
+      - "kubernetes"
+      - "kubernetes.default"
+      - "kubernetes.default.svc"
+      - "kubernetes.default.svc.{{ dns_domain }}"
+      - "localhost"
+      - "127.0.0.1"
+      - "::1"
+      - "{{ apiserver_loadbalancer_domain_name }}"
+      - "{{ loadbalancer_apiserver.address | d('') }}"
+      - "{{ groups['master'] | map('extract', hostvars, ['ansible_default_ipv4', 'address']) | select('defined') }}"
+      - "{{ groups['master'] | map('extract', hostvars, ['ansible_default_ipv6', 'address']) | select('defined') }}"
+      - "{{ groups['master'] | map('extract', hostvars, 'ansible_hostname') }}"
+      - "{{ groups['master'] | map('extract', hostvars, 'ansible_fqdn') }}"
+  tags:
+    - kubeadm
+
+- name: Write kubeadm config.
+  ansible.builtin.template:
+    src: kubeadm-config.yaml.j2
+    dest: "{{ kube_config_dir }}/kubeadm-config.yaml"
+    mode: '0600'
+    owner: root
+    backup: true
+    validate: "kubeadm config validate --config %s"
+  when: inventory_hostname == groups['master'][0]
+  tags:
+    - kubeadm

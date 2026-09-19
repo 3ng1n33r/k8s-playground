@@ -1,0 +1,49 @@
+---
+# Install HAProxy
+
+- name: Unhold packages.
+  ansible.builtin.dpkg_selections:
+    name: "{{ item }}"
+    selection: install
+  loop:
+    - haproxy
+  ignore_errors: true
+  tags:
+    - haproxy
+
+- name: Install HAProxy.
+  ansible.builtin.apt:
+    name:
+      - haproxy={{ haproxy_pkg_version }}
+    state: present
+    update_cache: true
+  tags:
+    - haproxy
+
+- name: Write HAProxy configuration.
+  ansible.builtin.template:
+    src: haproxy.cfg.j2
+    dest: "{{ haproxy_config_dir }}/haproxy.cfg"
+    owner: root
+    mode: '0644'
+    backup: true
+  notify: Restart haproxy.
+  tags:
+    - haproxy
+
+- name: Enable and start the HAProxy service.
+  ansible.builtin.systemd_service:
+    name: haproxy
+    state: started
+    enabled: true
+  tags:
+    - haproxy
+
+- name: Hold packages.
+  ansible.builtin.dpkg_selections:
+    name: "{{ item }}"
+    selection: hold
+  loop:
+    - haproxy
+  tags:
+    - haproxy

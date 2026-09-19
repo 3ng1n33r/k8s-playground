@@ -1,0 +1,46 @@
+---
+- name: Make directory.
+  ansible.builtin.file:
+    path: "/etc/systemd/system/containerd.service.d"
+    state: directory
+    mode: '0755'
+    owner: root
+    group: root
+
+- name: Write kubelet systemd init file.
+  ansible.builtin.template:
+    src: "containerd-override.conf.j2"
+    dest: "/etc/systemd/system/containerd.service.d/override.conf"
+    backup: true
+    mode: '0644'
+    owner: root
+    group: root
+  notify: Reload systemd.
+
+- name: Create kube.slice systemd unit.
+  ansible.builtin.copy:
+    dest: "/etc/systemd/system/kube.slice"
+    owner: root
+    group: root
+    mode: '0644'
+    content: |
+      [Unit]
+      Description=Kubernetes Slice
+
+      [Slice]
+  when: kube_reserved_cgroups is defined
+  notify: Reload systemd.
+
+- name: Check kube.slice systemd unit exist.
+  ansible.builtin.stat:
+    path: "/etc/systemd/system/kube.slice"
+  register: kube_slice_check
+
+- name: Remove kube.slice systemd unit.
+  ansible.builtin.file:
+    path: "/etc/systemd/system/kube.slice"
+    state: absent
+  when:
+    - kube_slice_check.stat.exists
+    - kube_reserved_cgroups is not defined
+  notify: Reload systemd.
