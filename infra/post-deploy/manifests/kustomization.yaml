@@ -13,9 +13,10 @@ resources:
   - ./prometheus/kubecert-expiration-rule.yaml
 #  - ./prometheus/monitoring-gateway-cert.yaml  
 #  - ./prometheus/monitoring-gateway.yaml
-  - ./prometheus/grafana-dashboard-haproxy.yaml
-  - ./prometheus/grafana-dashboard-node-exporter.yaml
+  - ./grafana/dashboard-haproxy.yaml
+  - ./grafana/dashboard-node-exporter.yaml
   - ./prometheus/blackbox-dns-alerts.yaml
   - ./system-upgrade-controller/upgrade_plan.yaml
   - ./kyverno/generate-vpa-resource.yaml
   - ./kyverno/clone-default-secrets.yaml
+  - ./exporters/kubecert-exporter.yaml

@@ -19,4 +19,3 @@ resources:
 #  - node-problem-detector.yaml
   - kyverno.yaml
   - etcd-defrag-cronjob.yaml
-  - kubecert-exporter.yaml

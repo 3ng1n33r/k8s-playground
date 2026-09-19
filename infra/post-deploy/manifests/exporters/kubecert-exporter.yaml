@@ -49,7 +49,7 @@ spec:
             mountPath: /etc/kubernetes/pki
             readOnly: true
           - name: etcd-pki
-            mountPath: /etc/ssl/etcd/ssl
+            mountPath: /etc/etcd/pki
             readOnly: true
       volumes:
         - name: config
@@ -60,7 +60,7 @@ spec:
             path: /etc/kubernetes/pki
         - name: etcd-pki
           hostPath:
-            path: /etc/ssl/etcd/ssl
+            path: /etc/etcd/pki
 ---
 apiVersion: monitoring.coreos.com/v1
 kind: PodMonitor
@@ -107,13 +107,13 @@ data:
         group: control-plane
 
       - name: etcd-external-server
-        path: /etc/ssl/etcd/ssl/server.crt
+        path: /etc/etcd/pki/server.crt
         group: etcd-external
 
       - name: etcd-external-peer
-        path: /etc/ssl/etcd/ssl/peer.crt
+        path: /etc/etcd/pki/peer.crt
         group: etcd-external
 
       - name: etcd-ca
-        path: /etc/ssl/etcd/ssl/ca.crt
+        path: /etc/etcd/pki/ca.crt
         group: etcd-external
