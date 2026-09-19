@@ -15,7 +15,7 @@ spec:
         spec:
           containers:
           - name: etcd-defrag
-            image: ghcr.io/ahrtr/etcd-defrag:v0.41.0
+            image: ghcr.io/ahrtr/etcd-defrag:v0.45.0
             args:
             - --endpoints=https://127.0.0.1:2379
             - --cacert=/ca.crt
@@ -61,5 +61,5 @@ spec:
               requiredDuringSchedulingIgnoredDuringExecution:
                 nodeSelectorTerms:
                 - matchExpressions:
-                  - key: node-role.kubernetes.io/control-plane
+                  - key: node-role.kubernetes.io/etcd
                     operator: Exists

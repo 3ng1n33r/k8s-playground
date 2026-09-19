@@ -21,7 +21,7 @@ spec:
       sourceRef:
         kind: HelmRepository
         name: cilium
-      version: 1.20.1
+      version: 1.20.2
   dependsOn:
     - name: kube-prometheus-stack
   interval: 30m
@@ -29,32 +29,22 @@ spec:
   targetNamespace: kube-system
   values:
     kubeProxyReplacement: true
-    k8sServiceHost: cluster-endpoint
+    k8sServiceHost: "127.0.0.1"
     k8sServicePort: 8443
-    rollOutCiliumPods: false
-#    updateStrategy:
-#      type: OnDelete
     gatewayAPI:
       enabled: true
-#    k8sClientRateLimit:
-#      burst: 100
-#      qps: 50
-#    l2announcements:
-#      enabled: true
     bgpControlPlane:
       enabled: true
     ipam:
+      mode: "cluster-pool"
       operator:
         clusterPoolIPv4PodCIDRList: ["10.95.0.0/22"]
         clusterPoolIPv4MaskSize: 24
-#    extraConfig:
-#      ipv4-service-range: "10.96.0.0/23"
     ipv4:
       enabled: true
     envoy:
       enabled: false
     operator:
-      rollOutPods: false
       replicas: 2
       prometheus:
         enabled: true
