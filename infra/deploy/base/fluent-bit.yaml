@@ -21,12 +21,12 @@ spec:
       sourceRef:
         kind: HelmRepository
         name: fluent
-      version: 0.56.0
+      version: 0.58.2
   dependsOn:
     - name: loki
   interval: 30m
   releaseName: fluent-bit
-  targetNamespace: logs
+  targetNamespace: logging
   values:
     nodeSelector:
       kubernetes.io/os: linux
