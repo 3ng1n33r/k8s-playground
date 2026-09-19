@@ -12,6 +12,6 @@ spec:
     name: flux-system
   path: "./infra/deploy/base"
   interval: 60m
-  timeout: 5m
+  timeout: 10m
   prune: true
   wait: true
