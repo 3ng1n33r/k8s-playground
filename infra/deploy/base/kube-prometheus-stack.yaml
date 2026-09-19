@@ -192,8 +192,8 @@ spec:
           - job_name: 'haproxy-external'
             static_configs:
               - targets:
-                  - 192.168.31.20:7000  
-                  - 192.168.31.21:7000  
+                  - 192.168.31.20:7000
+                  - 192.168.31.21:7000
                   - 192.168.31.22:7000
             scheme: http
           - job_name: blackbox-dns-kubernetes
@@ -262,7 +262,7 @@ spec:
         retentionSize: 5GB
         serviceMonitorSelectorNilUsesHelmValues: false
         ruleSelectorNilUsesHelmValues: false
-        ignoreNamespaceSelectors: true
+        ignoreNamespaceSelectors: false
         resources:
           requests:
             cpu: 200m
