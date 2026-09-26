@@ -6,4 +6,3 @@ metadata:
 spec:
   blocks:
     - cidr: "192.168.100.0/27"
-#    - cidr: "192.168.31.64/26" # L2 Announcements / L2 Aware LB
