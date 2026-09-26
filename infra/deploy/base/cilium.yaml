@@ -28,6 +28,10 @@ spec:
   releaseName: cilium
   targetNamespace: kube-system
   values:
+    priorityClassName: "system-node-critical"
+    rollOutCiliumPods: false
+    updateStrategy:
+      type: OnDelete
     kubeProxyReplacement: true
     k8sServiceHost: "127.0.0.1"
     k8sServicePort: 8443
@@ -46,6 +50,23 @@ spec:
       enabled: false
     operator:
       replicas: 2
+      podDisruptionBudget:
+        enabled: true
+        minAvailable: 1
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              preference:
+                matchExpressions:
+                  - key: node-role.kubernetes.io/control-plane
+                    operator: Exists
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - topologyKey: kubernetes.io/hostname
+              labelSelector:
+                matchLabels:
+                  io.cilium/app: operator
       prometheus:
         enabled: true
         serviceMonitor:
@@ -73,13 +94,13 @@ spec:
       label: grafana_dashboard
       labelValue: "1"
     hubble:
-      enabled: false
+      enabled: true
       relay:
         enabled: false
       ui:
         enabled: false
       metrics:
-        enableOpenMetrics: false
+        enableOpenMetrics: true
         enabled:
           - dns
           - drop
@@ -89,8 +110,8 @@ spec:
           - icmp
           - httpV2:exemplars=true;labelsContext=source_ip,source_namespace,source_workload,destination_ip,destination_namespace,destination_workload,traffic_direction
         serviceMonitor:
-          enabled: false
+          enabled: true
         dashboards:
-          enabled: false
+          enabled: true
           label: grafana_dashboard
           labelValue: "1"
