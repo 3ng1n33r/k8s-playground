@@ -21,7 +21,7 @@ spec:
       sourceRef:
         kind: HelmRepository
         name: prometheus-community
-      version: 91.4.1
+      version: 91.7.0
   dependsOn:
     - name: local-path-provisioner
   install:
@@ -244,8 +244,8 @@ spec:
               - source_labels:
                   - __meta_kubernetes_pod_node_name
                 target_label: node
-        secrets:
-          - etcd-client-cert
+#        secrets:
+#          - etcd-client-cert
         replicas: 2
         podAntiAffinity: "hard"
         affinity:
@@ -313,9 +313,17 @@ spec:
         enabled: true
         scheme: https
         insecureSkipVerify: false
-        caFile: /etc/prometheus/secrets/etcd-client-cert/etcd-ca.crt
-        certFile: /etc/prometheus/secrets/etcd-client-cert/healthcheck-client.crt
-        keyFile: /etc/prometheus/secrets/etcd-client-cert/healthcheck-client.key
+        ca:
+          secret:
+            name: etcd-client-cert
+            key: etcd-ca.crt
+        cert:
+          secret:
+            name: etcd-client-cert
+            key: healthcheck-client.crt
+        keySecret:
+          name: etcd-client-cert
+          key: healthcheck-client.key
     kubeProxy:
       enabled: false
     kube-state-metrics:
