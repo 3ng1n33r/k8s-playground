@@ -312,18 +312,19 @@ spec:
       serviceMonitor:
         enabled: true
         scheme: https
-        insecureSkipVerify: false
-        ca:
-          secret:
+        tlsConfig:
+          insecureSkipVerify: false
+          ca:
+            secret:
+              name: etcd-client-cert
+              key: etcd-ca.crt
+          cert:
+            secret:
+              name: etcd-client-cert
+              key: healthcheck-client.crt
+          keySecret:
             name: etcd-client-cert
-            key: etcd-ca.crt
-        cert:
-          secret:
-            name: etcd-client-cert
-            key: healthcheck-client.crt
-        keySecret:
-          name: etcd-client-cert
-          key: healthcheck-client.key
+            key: healthcheck-client.key
     kubeProxy:
       enabled: false
     kube-state-metrics:
