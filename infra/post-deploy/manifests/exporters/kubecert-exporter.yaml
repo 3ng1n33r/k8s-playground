@@ -14,11 +14,13 @@ spec:
         app: kubecert-exporter
     spec:
       nodeSelector:
+        kubernetes.io/os: linux
         node-role.kubernetes.io/control-plane: ""
       tolerations:
       - key: "node-role.kubernetes.io/control-plane"
         operator: "Exists"
         effect: "NoSchedule"
+      priorityClassName: "system-node-critical"
       containers:
       - name: exporter
         image: pitipiwpiwwiwwiw/kubecert-exporter:0.1
