@@ -33,7 +33,12 @@ spec:
         cpu: 200m
         memory: 128Mi
     securityContext:
-      privileged: true
+      privileged: false
+      capabilities:
+        drop:
+          - ALL
+        add:
+          - SYSLOG
     extraVolumes:
       - name: dev-kmsg
         hostPath:
