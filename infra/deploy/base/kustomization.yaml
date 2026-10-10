@@ -10,9 +10,8 @@ resources:
   - cert-manager.yaml
   - loki.yaml
   - fluent-bit-k8s-events.yaml
-#  - fluent-bit.yaml
+  - fluent-bit.yaml
   - node-feature-discovery.yaml
-#  - k8s-event-logger.yaml
   - cilium.yaml
   - kured.yaml
   - ./system-upgrade-controller/v0.20.1/crd.yaml
