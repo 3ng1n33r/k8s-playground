@@ -21,7 +21,7 @@ spec:
       sourceRef:
         kind: HelmRepository
         name: prometheus-community
-      version: 91.7.0
+      version: 92.3.0
   dependsOn:
     - name: local-path-provisioner
   install:
@@ -64,13 +64,13 @@ spec:
           searchNamespace: ALL
           label: grafana_dashboard
           labelValue: "1"
-#      additionalDataSources:
-#        - name: Loki
-#          type: loki
-#          url: http://loki-gateway.logging.svc.cluster.local
-#          editable: true
-#          basicAuth: false
-#          access: proxy
+      additionalDataSources:
+        - name: Loki
+          type: loki
+          url: http://loki-gateway.logging.svc.cluster.local
+          editable: true
+          basicAuth: false
+          access: proxy
     defaultRules:
       disabled:
         InfoInhibitor: true
@@ -98,6 +98,8 @@ spec:
                 chat_id: -880628191
                 send_resolved: true
                 message: '{{ template "telegram.default.message" . }}'
+#                http_config:
+#                  proxy_url: socks5://socks5-proxy.apps.svc.cluster.local:1080
       templateFiles:
         telegram.tmpl: |-
           {{ define "telegram.default.message" }}
@@ -244,8 +246,6 @@ spec:
               - source_labels:
                   - __meta_kubernetes_pod_node_name
                 target_label: node
-#        secrets:
-#          - etcd-client-cert
         replicas: 2
         podAntiAffinity: "hard"
         affinity:
@@ -338,6 +338,7 @@ spec:
           memory: 128Mi
     prometheus-node-exporter:
       enabled: true
+      priorityClassName: "system-node-critical"
       extraArgs:
         - --collector.textfile.directory=/var/lib/node_exporter/textfile_collector
         - --collector.filesystem.mount-points-exclude=^/(dev|proc|sys|var/lib/docker/.+|var/lib/kubelet/.+)($|/)
