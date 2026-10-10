@@ -10,7 +10,7 @@ resources:
   - cert-manager.yaml
   - loki.yaml
   - fluent-bit-k8s-events.yaml
-  - fluent-bit.yaml
+#  - fluent-bit.yaml
   - node-feature-discovery.yaml
   - cilium.yaml
   - kured.yaml
