@@ -33,17 +33,15 @@ spec:
         cpu: 200m
         memory: 128Mi
     securityContext:
-      capabilities:
-        add:
-        - SYSLOG
+      privileged: true
     extraVolumes:
       - name: dev-kmsg
-        hostPath:  
-          path: /dev/kmsg  
+        hostPath:
+          path: /dev/kmsg
           type: CharDevice
     extraVolumeMounts:
-      - name: dev-kmsg  
-        mountPath: /dev/kmsg 
+      - name: dev-kmsg
+        mountPath: /dev/kmsg
     config:
       inputs: |
         [INPUT]
