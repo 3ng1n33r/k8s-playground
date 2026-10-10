@@ -51,7 +51,6 @@ spec:
             Name              kmsg
             Tag               kernel
             Threaded          On
-            Read_From_Tail    Off
             Prio_Level        8
       filters: |
       outputs: |
