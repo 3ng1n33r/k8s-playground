@@ -24,6 +24,7 @@ containerd_config_dir: "/etc/containerd"
 kubelet_config_dir: "/var/lib/kubelet"
 bin_dir: "/usr/local/bin"
 cri_socket: "unix:///var/run/containerd/containerd.sock"
+control_plane_taints_enabled: false
 # flux
 flux_version: "2.9.5"
 kubeseal_version: "0.40.0"
