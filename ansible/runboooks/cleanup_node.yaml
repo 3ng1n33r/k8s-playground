@@ -1,0 +1,97 @@
+---
+# ansible-playbook -i inventory/hosts.yaml runbooks/cleanup_node -l NODE_NAME -e delete_node=true -CD
+# ansible-playbook -i inventory/hosts.yml runbooks/cleanup_node -l NODE_NAME -e drain_node=true -e cleanup_node=true -CD
+- name: Runbooks | Cleanup node.
+  hosts: "{{ ansible_limit }}"
+  become: true
+  tasks:
+    - name: Drain node.
+      ansible.builtin.command: kubectl drain {{ ansible_hostname }} --ignore-daemonsets --delete-emptydir-data --force
+      delegate_to: localhost
+      ignore_errors: true
+      become: false
+      when: drain_node | default(false) | bool
+
+    - name: Cleanup node.
+      when: cleanup_node | default(false) | bool
+      block:
+        - name: Kubeadm reset.
+          ansible.builtin.command: kubeadm reset -f
+          ignore_errors: true
+
+        - name: Stop and disable the Services.
+          ansible.builtin.systemd_service:
+            name: "{{ item }}"
+            state: stopped
+            enabled: false
+          loop:
+            - kubelet
+            - containerd
+            - etcd
+            - haproxy
+          ignore_errors: true
+
+        - name: Unhold packages.
+          ansible.builtin.dpkg_selections:
+            name: "{{ item }}"
+            selection: install
+          loop:
+            - kubeadm
+            - kubelet
+            - kubectl
+            - containerd.io
+            - cri-tools
+            - haproxy
+          ignore_errors: true
+
+        - name: Remove packages.
+          ansible.builtin.apt:
+            name:
+              - kubeadm
+              - kubelet
+              - kubectl
+              - containerd.io
+              - kubernetes-cni
+              - cri-tools
+              - haproxy
+            state: absent
+            purge: true
+
+        - name: Remove folders.
+          ansible.builtin.file:
+            name: "{{ item }}"
+            state: absent
+          loop:
+            - /etc/kubernetes
+            - /etc/containerd
+            - /etc/systemd/system/containerd.service.d
+            - /etc/systemd/system/kubelet.service.d
+            - /etc/crictl.yaml
+            - /etc/sysctl.d/kubernetes.conf
+            - /etc/haproxy
+            - /etc/cni
+            - /opt/cni
+            - /opt/containerd
+            - /opt/kubernetes
+            - /var/lib/cni
+            - /var/lib/kubelet
+            - /var/lib/containerd
+            - /var/lib/kubernetes
+            - /var/log/containers
+            - /var/log/pods
+            - /var/lib/etcd
+            - /etc/etcd
+            - /usr/local/bin/etcd
+            - /usr/local/bin/etcdctl
+            - /usr/local/bin/etcdutl
+            - /usr/local/bin/cilium
+
+        - name: Delete node.
+          ansible.builtin.command: kubectl delete node {{ ansible_hostname }}
+          delegate_to: localhost
+          become: false
+          ignore_errors: true
+
+        - name: Reboot node.
+          ansible.builtin.reboot:
+            reboot_timeout: 600

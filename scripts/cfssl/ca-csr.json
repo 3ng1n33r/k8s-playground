@@ -1,0 +1,17 @@
+{
+  "CN": "kubernetes-playground",
+  "key": {
+      "algo": "rsa",
+      "size": 4096
+  },
+  "ca": {
+    "expiry": "87600h"
+  },
+  "names": [
+    {
+        "C": "RU",
+        "L": "Perm",
+        "O": "Kubernetes",
+        "OU": "Kubernetes Playground"
+    }]
+}

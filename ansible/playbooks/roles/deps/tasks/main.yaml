@@ -135,7 +135,7 @@
       runtime-endpoint: unix:///var/run/containerd/containerd.sock
       image-endpoint: unix:///var/run/containerd/containerd.sock
       timeout: 10
-      debug: true
+      debug: false
     owner: root
     group: root
     mode: '0644'
@@ -152,5 +152,10 @@
     - kubectl
     - containerd.io
     - cri-tools
+  tags:
+    - deps
+
+- name: Force all notified handlers to run at this point.
+  ansible.builtin.meta: flush_handlers
   tags:
     - deps

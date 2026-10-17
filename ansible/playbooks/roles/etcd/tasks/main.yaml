@@ -166,7 +166,6 @@
 
 - name: Install etcd.
   when: "'etcd' in group_names"
-  throttle: 1
   block:
     - name: Check etcd binary exist.
       ansible.builtin.stat:

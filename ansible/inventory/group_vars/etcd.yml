@@ -1,4 +1,4 @@
-etcd_version: "3.5.33"
+etcd_version: "3.6.15"
 etcd_owner: "etcd"
 etcd_data_dir: "/var/lib/etcd"
 etcd_config_dir: "/etc/etcd"

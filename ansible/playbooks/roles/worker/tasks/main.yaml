@@ -1,17 +1,48 @@
 ---
 # Join worker nodes
 
-- name: Configure join commands on first master node.
+- name: Save facts on first master node.
   when: inventory_hostname == groups['master'][0]
   block:
-    - name: Retrieve join command.
-      ansible.builtin.command: kubeadm token create --print-join-command
-      register: join_command_raw
+    - name: Calculate CA public key hash on first master.
+      ansible.builtin.command:
+        argv:
+          - openssl
+          - x509
+          - -pubkey
+          - -in
+          - "{{ kube_cert_dir }}/ca.crt"
+      register: ca_pubkey
       changed_when: false
 
-    - name: Set join command fact.
+    - name: Calculate CA hash.
+      ansible.builtin.shell: |
+        printf '%s\n' {{ ca_pubkey.stdout | quote }} |
+          openssl rsa -pubin -outform der 2>/dev/null |
+          openssl dgst -sha256 -hex |
+          sed 's/^.* //'
+      register: ca_hash_result
+      changed_when: false
+
+    - name: Save CA hash as a fact on the first master.
       ansible.builtin.set_fact:
-        join_command: "{{ join_command_raw.stdout_lines[0] }}"
+        kubeadm_ca_hash: "{{ ca_hash_result.stdout }}"
+
+    - name: Read bootstrap token from Vault.
+      community.hashi_vault.vault_kv2_get:
+        url: "{{ vault_addr }}"
+        engine_mount_point: "{{ vault_mount | default('secret') }}"
+        path: "{{ cluster_name }}/bootstrap_token"
+        token: "{{ vault_token }}"
+      delegate_to: localhost
+      become: false
+      register: bootstrap_token_vault
+      no_log: true
+
+    - name: Save bootstrap token in fact.
+      ansible.builtin.set_fact:
+        kubeadm_bootstrap_token: "{{ bootstrap_token_vault.secret.value | trim }}"
+      no_log: true
   tags:
     - worker
 
@@ -24,10 +55,15 @@
         host: "{{ loadbalancer_apiserver.address }}"
         port: "{{ loadbalancer_apiserver.port }}"
 
-    - name: Join worker node to cluster.
-      ansible.builtin.shell: "{{ hostvars[groups['master'][0]].join_command }} > node_joined.log 2>&1"
+    - name: Join master node to cluster.
+      ansible.builtin.shell: |
+        kubeadm join \
+          "{{ loadbalancer_apiserver.address }}:{{ loadbalancer_apiserver.port }}" \
+          --token "{{ hostvars[groups['master'][0]]['kubeadm_bootstrap_token'] }}" \
+          --discovery-token-ca-cert-hash "sha256:{{ hostvars[groups['master'][0]]['kubeadm_ca_hash'] }}" \
+          --v=5 > node_joined.log 2>&1
       args:
         chdir: /home/{{ ansible_user }}
-        creates: node_joined.log
+        creates: "{{ kube_config_dir }}/kubelet.conf"
   tags:
     - worker

@@ -1,7 +1,4 @@
 ---
 # .ansible-lint
 
-profile: min # min, basic, moderate,safety, shared, production
-
-warn_list:
-  - yaml[line-length]
+profile: production # min, basic, moderate,safety, shared, production
