@@ -2,3 +2,4 @@
 *.crt
 *.pub
 *.csr
+bootstrap_token

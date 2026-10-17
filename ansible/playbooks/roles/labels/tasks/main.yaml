@@ -4,7 +4,7 @@
     argv:
       - kubectl
       - --kubeconfig
-      - /etc/kubernetes/admin.conf
+      - "{{ kube_config_dir }}/admin.conf"
       - label
       - node
       - "{{ ansible_hostname }}"
@@ -20,7 +20,7 @@
     argv:
       - kubectl
       - --kubeconfig
-      - /etc/kubernetes/admin.conf
+      - "{{ kube_config_dir }}/admin.conf"
       - label
       - node
       - "{{ ansible_hostname }}"
@@ -36,7 +36,7 @@
     argv:
       - kubectl
       - --kubeconfig
-      - /etc/kubernetes/admin.conf
+      - "{{ kube_config_dir }}/admin.conf"
       - label
       - node
       - "{{ ansible_hostname }}"
@@ -52,7 +52,7 @@
 #    argv:
 #      - kubectl
 #      - --kubeconfig
-#      - /etc/kubernetes/admin.conf
+#      - "{{ kube_config_dir }}/admin.conf"
 #      - label
 #      - node
 #      - "{{ ansible_hostname }}"

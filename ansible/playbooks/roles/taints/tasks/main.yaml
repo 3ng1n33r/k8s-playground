@@ -4,7 +4,7 @@
     argv:
       - kubectl
       - --kubeconfig
-      - /etc/kubernetes/admin.conf
+      - "{{ kube_config_dir }}/admin.conf"
       - taint
       - node
       - "{{ ansible_hostname }}"

@@ -9,7 +9,6 @@
     - os
     - deps
     - haproxy
-    - sysctl
     - etcd
     - kubeadm
     - master
@@ -18,4 +17,5 @@
     - labels
     - taints
     - cron
+    - sysctl
     - kubelet

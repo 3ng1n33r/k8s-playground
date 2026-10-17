@@ -1,6 +1,6 @@
 ---
 - name: Aggregate all SANs.
-  set_fact:
+  ansible.builtin.set_fact:
     apiserver_sans: "{{ _apiserver_sans | flatten | select | unique }}"
   vars:
     _apiserver_sans:
@@ -17,6 +17,28 @@
       - "{{ groups['master'] | map('extract', hostvars, ['ansible_default_ipv6', 'address']) | select('defined') }}"
       - "{{ groups['master'] | map('extract', hostvars, 'ansible_hostname') }}"
       - "{{ groups['master'] | map('extract', hostvars, 'ansible_fqdn') }}"
+  tags:
+    - kubeadm
+
+- name: Read bootstrap token from Vault.
+  community.hashi_vault.vault_kv2_get:
+    url: "{{ vault_addr }}"
+    engine_mount_point: "{{ vault_mount | default('secret') }}"
+    path: "{{ cluster_name }}/bootstrap_token"
+    token: "{{ vault_token }}"
+  delegate_to: localhost
+  become: false
+  register: bootstrap_token_vault
+  no_log: true
+  when: inventory_hostname == groups['master'][0]
+  tags:
+    - kubeadm
+
+- name: Save bootstrap token in fact.
+  ansible.builtin.set_fact:
+    kubeadm_bootstrap_token: "{{ bootstrap_token_vault.secret.value | trim }}"
+  no_log: true
+  when: inventory_hostname == groups['master'][0]
   tags:
     - kubeadm
 

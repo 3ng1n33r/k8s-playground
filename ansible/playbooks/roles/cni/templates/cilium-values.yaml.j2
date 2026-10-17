@@ -2,7 +2,6 @@ priorityClassName: "system-node-critical"
 rollOutCiliumPods: false
 updateStrategy:
   type: OnDelete
-  rollingUpdate: null
 k8sServiceHost: "{{ loadbalancer_apiserver.address }}"
 k8sServicePort: "{{ loadbalancer_apiserver.port }}"
 kubeProxyReplacement: true
