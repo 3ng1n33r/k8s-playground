@@ -8,8 +8,8 @@ apiserver_loadbalancer_domain_name: "cluster-endpoint"
 loadbalancer_apiserver:
   address: 127.0.0.1
   port: 8443
-kubernetes_pkg_version: "1.34.12-1.1"
-containerd_pkg_version: "2.3.6-1~ubuntu.26.04~resolute"
+kubernetes_pkg_version: "1.36.5-1.1"
+containerd_pkg_version: "2.4.2-2~ubuntu.26.04~resolute"
 haproxy_pkg_version: "3.2.9-1ubuntu2"
 cri_tools_pkg_version: "1.34.0-1.1"
 sandbox_image: "registry.k8s.io/pause:3.10.2"
@@ -70,6 +70,7 @@ kubelet_rotate_certificates: true
 kubelet_rotate_server_certificates: false
 kubelet_feature_gates:
   - InPlacePodVerticalScaling=true
+  - KubeletPSI=true
 kubelet_max_parallel_image_pulls: 2
 kubelet_image_gc_high_threshold: 85
 kubelet_image_gc_low_threshold: 80
