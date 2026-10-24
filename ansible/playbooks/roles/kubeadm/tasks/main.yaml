@@ -50,6 +50,65 @@
     owner: root
     backup: true
     validate: "kubeadm config validate --config %s"
+  register: kubeadm_config_result
   when: inventory_hostname == groups['master'][0]
+  tags:
+    - kubeadm
+
+# upgrade configs
+
+- name: Check if kube-apiserver manifest exists.
+  ansible.builtin.stat:
+    path: "{{ kube_manifest_dir }}/kube-apiserver.yaml"
+  register: kube_apiserver_manifest
+  when:
+    - inventory_hostname == groups['master'][0]
+  tags:
+    - kubeadm
+
+- name: Upload configs to cluster.
+  when:
+    - inventory_hostname == groups['master'][0]
+    - kubeadm_config_result.changed | default(false)
+    - kube_apiserver_manifest.stat.exists | default(false)
+  block:
+    - name: Upload kubeadm config to cluster.
+      ansible.builtin.command:
+        argv:
+          - kubeadm
+          - init
+          - phase
+          - upload-config
+          - kubeadm
+          - --config
+          - "{{ kube_config_dir }}/kubeadm-config.yaml"
+      changed_when: true
+
+    - name: Upload kubelet config to cluster.
+      ansible.builtin.command:
+        argv:
+          - kubeadm
+          - init
+          - phase
+          - upload-config
+          - kubelet
+          - --config
+          - "{{ kube_config_dir }}/kubeadm-config.yaml"
+      changed_when: true
+  tags:
+    - kubeadm
+
+- name: Apply new changes to control-plane.
+  throttle: 1
+  ansible.builtin.command:
+    argv:
+      - kubeadm
+      - upgrade
+      - node
+      - phase
+      - control-plane
+  when:
+    - upgrade_config | default(false) | bool
+    - "'master' in group_names"
   tags:
     - kubeadm

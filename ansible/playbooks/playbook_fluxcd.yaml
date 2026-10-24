@@ -40,14 +40,21 @@
         - not flux_check.stat.exists or installed_flux_version != flux_version
 
     - name: Initialize Flux.
-      ansible.builtin.shell: flux bootstrap gitlab --deploy-token-auth --owner={{ gitlab_user }} --repository={{ flux_gitlab_repo }} --branch={{ flux_gitlab_branch }} --path={{ flux_gitlab_path }} --personal --components-extra=image-reflector-controller,image-automation-controller > flux_initialized.log 2>&1
+      ansible.builtin.shell: |
+        flux bootstrap gitlab \
+        --deploy-token-auth \
+        --owner={{ gitlab_user }} \
+        --repository={{ flux_gitlab_repo }} \
+        --branch={{ flux_gitlab_branch }} \
+        --path={{ flux_gitlab_path }} \
+        --components-extra=image-reflector-controller,image-automation-controller \
+        --personal > flux_initialized.log 2>&1
       environment:
         GITLAB_TOKEN: "{{ gitlab_pat }}"
         GITLAB_USER: "{{ gitlab_user }}"
-        KUBECONFIG: /etc/kubernetes/admin.conf
+        KUBECONFIG: "{{ kube_config_dir }}/admin.conf"
       args:
         chdir: /home/{{ ansible_user }}
-        creates: flux_initialized.log
 
     - name: Check Kubeseal binary exist.
       ansible.builtin.stat:
