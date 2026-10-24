@@ -32,6 +32,11 @@ spec:
   values:
     kind: Deployment
     replicaCount: 1
+    updateStrategy:
+      type: RollingUpdate
+      rollingUpdate:
+        maxUnavailable: 0
+        maxSurge: 1
     rbac:
       create: true
       eventsAccess: true
