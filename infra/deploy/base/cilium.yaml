@@ -32,8 +32,8 @@ spec:
   values:
     priorityClassName: "system-node-critical"
     rollOutCiliumPods: false
-    updateStrategy:
-      type: OnDelete
+#    updateStrategy:
+#      type: OnDelete
     kubeProxyReplacement: true
     k8sServiceHost: "127.0.0.1"
     k8sServicePort: 8443
