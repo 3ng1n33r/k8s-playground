@@ -1,5 +1,6 @@
 ---
 - name: Restart kubelet.
+  throttle: 1
   ansible.builtin.systemd_service:
     name: kubelet
     state: restarted

@@ -24,3 +24,21 @@
   notify: Restart kubelet.
   tags:
     - kubelet
+
+# upgrade config
+
+- name: Apply new changes to kubelet.
+  throttle: 1
+  ansible.builtin.command:
+    argv:
+      - kubeadm
+      - upgrade
+      - node
+      - phase
+      - kubelet-config
+  changed_when: true
+  notify: Restart kubelet.
+  when:
+    - upgrade_config | default(false) | bool
+  tags:
+    - kubelet

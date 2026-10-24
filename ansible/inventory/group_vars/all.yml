@@ -69,8 +69,11 @@ kubelet_logfiles_max_size: 10Mi
 kubelet_rotate_certificates: true
 kubelet_rotate_server_certificates: false
 kubelet_feature_gates:
-  - InPlacePodVerticalScaling=true
-  - KubeletPSI=true
+  - MaxUnavailableStatefulSet=true
+  - PersistentVolumeClaimUnusedSinceTime=true
+  - MemoryQoS=true
+#  - InPlacePodVerticalScaling=true
+#  - KubeletPSI=true
 kubelet_max_parallel_image_pulls: 2
 kubelet_image_gc_high_threshold: 85
 kubelet_image_gc_low_threshold: 80
