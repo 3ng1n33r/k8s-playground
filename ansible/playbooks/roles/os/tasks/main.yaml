@@ -115,19 +115,37 @@
   when:
     - irq_affinity | default(false) | bool
   block:
-    - name: Write IRQ affinity configuration.
-      ansible.builtin.template:
-        src: irq-affinity.service.j2
-        dest: "/etc/systemd/system/irq-affinity.service"
+    - name: Copy Ethernet IRQs script.
+      ansible.builtin.copy:
+        src: files/eth-irq-affinity.sh
+        dest: "{{ bin_dir }}/eth-irq-affinity.sh"
         owner: root
+        group: root
+        mode: '0755'
+
+    - name: Ethernet IRQs unit.
+      ansible.builtin.copy:
+        content: |
+          [Unit]
+          Description=Pin Ethernet IRQs to CPU 0
+          After=network-pre.target
+          Wants=network-pre.target
+
+          [Service]
+          Type=oneshot
+          ExecStart={{ bin_dir }}/eth-irq-affinity.sh
+          RemainAfterExit=yes
+
+          [Install]
+          WantedBy=multi-user.target
+        dest: "/etc/systemd/system/eth-irq-affinity.service"
         mode: '0644'
-        backup: true
-      notify: Reload systemd.
 
     - name: Enable and start the IRQ affinity service.
       ansible.builtin.systemd_service:
-        name: irq-affinity
+        name: eth-irq-affinity.service
         state: started
+        daemon_reload: true
         enabled: true
   tags:
     - os

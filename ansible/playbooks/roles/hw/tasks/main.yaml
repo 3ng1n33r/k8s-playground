@@ -1,0 +1,39 @@
+---
+- name: Read Device Tree compatible.
+  ansible.builtin.shell:
+    cmd: "tr '\\0' '\\n' < /proc/device-tree/compatible"
+  register: device_tree_compatible
+  changed_when: false
+  failed_when: false
+  tags:
+    - hw
+
+- name: Detect Raspberry Pi CM5.
+  ansible.builtin.set_fact:
+    is_raspberry_pi_cm5: >-
+      {{
+        'raspberrypi,5-compute-module'
+        in device_tree_compatible.stdout_lines
+      }}
+  tags:
+    - hw
+
+- name: Show detected hardware.
+  ansible.builtin.debug:
+    msg:
+      - "Host: {{ inventory_hostname }}"
+      - "Architecture: {{ ansible_architecture }}"
+      - "Compatible: {{ device_tree_compatible.stdout_lines | default([]) }}"
+      - "CM5 detected: {{ is_raspberry_pi_cm5 }}"
+  tags:
+    - hw
+
+- name: Deploy Raspberry Pi CM5 power exporter.
+  ansible.builtin.include_tasks:
+    file: cm5_power.yaml
+    apply:
+      tags:
+        - hw
+  when: is_raspberry_pi_cm5
+  tags:
+    - hw
