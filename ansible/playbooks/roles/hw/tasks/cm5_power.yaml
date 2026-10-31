@@ -1,0 +1,55 @@
+---
+- name: Create textfile collector directory.
+  ansible.builtin.file:
+    path: /opt/node_exporter/textfile_collector
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Deploy CM5 power exporter.
+  ansible.builtin.copy:
+    src: files/cm5_power_exporter.sh
+    dest: "{{ bin_dir }}/cm5_power_exporter.sh"
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: CM5 PMIC metrics collector unit.
+  ansible.builtin.copy:
+    content: |
+      [Unit]
+      Description=CM5 PMIC metrics collector
+
+      [Service]
+      Type=oneshot
+      ExecStart={{ bin_dir }}/cm5_power_exporter.sh
+    dest: "/etc/systemd/system/cm5-power.service"
+    mode: '0644'
+
+- name: CM5 PMIC metrics collector timer.
+  ansible.builtin.copy:
+    content: |
+      [Unit]
+      Description=Collect CM5 PMIC metrics every 5 seconds
+
+      [Timer]
+      OnBootSec=5s
+      OnUnitActiveSec=5s
+      AccuracySec=1s
+      Unit=cm5-power.service
+
+      [Install]
+      WantedBy=timers.target
+    dest: "/etc/systemd/system/cm5-power.timer"
+    mode: '0644'
+
+- name: Just force systemd to reread configs.
+  ansible.builtin.systemd_service:
+    daemon_reload: true
+
+- name: Enable and start CM5 PMIC metrics collector timer.
+  ansible.builtin.systemd_service:
+    name: cm5-power.timer
+    state: started
+    enabled: true
