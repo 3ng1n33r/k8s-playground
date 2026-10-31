@@ -79,6 +79,20 @@
   tags:
     - os
 
+# Raspberry Pi EEPROM updates
+
+- name: Mask rpi-eeprom-update service.
+  ansible.builtin.systemd_service:
+    name: rpi-eeprom-update.service
+    state: stopped
+    enabled: false
+    masked: true
+  ignore_errors: true
+  when:
+    - not rpi_eeprom_update_service | bool
+  tags:
+    - os
+
 - name: Configure journald.
   ansible.builtin.lineinfile:
     dest: /etc/systemd/journald.conf

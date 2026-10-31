@@ -38,6 +38,7 @@ vault_mount: "secret"
 vault_token: "{{ lookup('ansible.builtin.file', '~/.vault-token') | trim }}"
 # os
 unattended_upgrades: false
+rpi_eeprom_update_service: false
 #proxy_address: "socks5h://192.168.1.208:1080"
 # irq
 irq_affinity: false
