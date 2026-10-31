@@ -13,6 +13,7 @@ exec 9>"${OUT}.lock"
 flock -n 9 || exit 0
 
 tmp="$(mktemp "${OUT}.tmp.XXXXXX")" || exit 1
+chmod 0644 "$tmp" || exit 1
 trap 'rm -f "$tmp"' EXIT
 
 write_metrics() {
