@@ -89,7 +89,7 @@
     masked: true
   ignore_errors: true
   when:
-    - not rpi_eeprom_update_service | bool
+    - not rpi_eeprom_update | bool
   tags:
     - os
 
