@@ -17,6 +17,8 @@ resources:
   - ./grafana/dashboard-haproxy.yaml
   - ./grafana/dashboard-node-exporter.yaml
   - ./grafana/dashboard-cm5-power.yaml
+  - ./grafana/dashboard-cert-manager.yaml
+  - ./grafana/dashboard-kubecert-exporter.yaml
   - ./prometheus/blackbox-dns-alerts.yaml
   - ./system-upgrade-controller/upgrade_plan.yaml
   - ./kyverno/generate-vpa-resource.yaml
